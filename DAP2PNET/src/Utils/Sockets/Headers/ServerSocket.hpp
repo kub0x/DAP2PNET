@@ -13,7 +13,7 @@
 
 class ServerSocket {
 
-private:
+protected:
 	const int MAX_CONNECTIONS=5;
 	int serverfd, port, number_conn=0;
 
@@ -22,8 +22,9 @@ private:
 public:
 
 	ServerSocket(int port);
-	void OnRead(ClientSocket *client, std::vector<char*> buff);
-	void OnClose(ClientSocket *client );
+	virtual ~ServerSocket(){}
+	virtual void OnRead(ClientSocket *client, std::vector<char*> buff);
+	virtual void OnClose(ClientSocket *client );
 	void Listen();
 	void Write(int sockfd);
 	void Close();

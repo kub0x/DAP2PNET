@@ -5,13 +5,14 @@
  *      Author: kub0x
  */
 
-#include "Utils/Sockets/Headers/ServerSocket.hpp"
+#include "Registration/Headers/RegServer.hpp"
 #include "Utils/Crypto/Headers/PKI.hpp"
+#include <vector>
 
 int main(int argc, char** argv){
 	PKI::GetInstance()->GenSelfSigned();
-	ServerSocket *server = new ServerSocket(44444);
-	server->Listen();
+	RegServer *reg_server = new RegServer(44444);
+	reg_server->Listen();
 	return 0;
 }
 

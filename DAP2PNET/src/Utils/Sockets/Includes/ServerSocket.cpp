@@ -20,8 +20,6 @@
 #include <sys/types.h>
 #include <time.h>
 
-#include "../../Crypto/Headers/PKI.hpp"
-
 ServerSocket::ServerSocket(int port){
 	this->serverfd=0;
 	this->port=0;
@@ -45,12 +43,9 @@ void ServerSocket::InitSocket(){
 }
 
 void ServerSocket::OnRead(ClientSocket *client, std::vector<char*> buff){
-	std::cout << "IN CALLBACK!" << std::endl;
-	std::string strCsr;
+	std::cout << "IN CALLBACK SERVERSOCKET!" << std::endl;
 	for(auto it = buff.begin(); it != buff.end(); ++it)
-		strCsr+=*it;
-	std::cout << strCsr << std::endl;
-	PKI::GetInstance()->SignCert(PKI::GetInstance()->CSRtoX509(strCsr), client->GetID());
+	std::cout << *it << std::endl;
 }
 
 void ServerSocket::OnClose(ClientSocket *client){
