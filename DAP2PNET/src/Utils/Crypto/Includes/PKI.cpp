@@ -75,7 +75,10 @@ X509* PKI::CSRtoX509(std::string strCsr){
 	BIO_write( bo, strCsr.c_str(),strCsr.length());
 	//BIO *csr_file = BIO_new_file("csr.pem", "r+");
 	X509_REQ *csr=NULL;
-	PEM_read_bio_X509_REQ(bo, &csr, NULL, NULL);
+	if (!PEM_read_bio_X509_REQ(bo, &csr, NULL, NULL)){
+		perror("PEM_read_bio_X509_REQ");
+		return(NULL);
+	}
 	EVP_PKEY *pkey = X509_REQ_get_pubkey(csr);
 	X509_NAME *name=X509_REQ_get_subject_name(csr);
 	X509 *cert = X509_new();

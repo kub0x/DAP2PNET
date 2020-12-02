@@ -16,12 +16,13 @@ class ServerSocket {
 protected:
 	const int MAX_CONNECTIONS=5;
 	int serverfd, port, number_conn=0;
-
+	int enabled_SSL = false;
 	void InitSocket();
 
 public:
 
 	ServerSocket(int port);
+	ServerSocket(int port, bool enable_SSL);
 	virtual ~ServerSocket(){}
 	virtual void OnRead(ClientSocket *client, std::vector<char*> buff);
 	virtual void OnClose(ClientSocket *client );

@@ -19,11 +19,18 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+#include "../Headers/SSLClientSocket.hpp"
 
 ServerSocket::ServerSocket(int port){
 	this->serverfd=0;
-	this->port=0;
 	this->port = port;
+	InitSocket();
+}
+
+ServerSocket::ServerSocket(int port,bool enabled_SSL){
+	this->serverfd = 0;
+	this->port = port;
+	this->enabled_SSL = enabled_SSL;
 	InitSocket();
 }
 
@@ -57,8 +64,11 @@ void ServerSocket::OnClose(ClientSocket *client){
 void ServerSocket::Listen(){
 	 int clientfd = 0;
 	 int err = listen(serverfd, MAX_CONNECTIONS);
-	 if (err == -1)
+	 if (err == -1){
 		 perror("listen");
+		 exit(-1);
+	 }
+	 std::cout << "Server started to listen" << std::endl;
 	 while(true)
 	 {
 		 if(number_conn >= MAX_CONNECTIONS){
@@ -71,7 +81,11 @@ void ServerSocket::Listen(){
 		 if (clientfd > 0){
 			 number_conn++;
 		 	std::cout << "Client Connected! " << std::endl;
-		 	ClientSocket *client = new ClientSocket(clientfd);
+		 	ClientSocket *client = NULL;
+		 	if(enabled_SSL)
+		 		client = new SSLClientSocket(clientfd);
+		 	else
+		 		client = new ClientSocket(clientfd);
 		 	client->SetCallBackRead(std::bind(&ServerSocket::OnRead, this, std::placeholders::_1, std::placeholders::_2));
 		 	client->SetCallBackClose(std::bind(&ServerSocket::OnClose, this, std::placeholders::_1));
 		 	std::thread t(&ClientSocket::Read, client);

@@ -14,7 +14,7 @@
 
 class ClientSocket{
 
-private:
+protected:
 	const int PACKET_LENGTH=1024;
 	int sockfd=0, port=0;
 	std::string IP;
@@ -25,13 +25,15 @@ public:
 	//The other having a valid socket descriptor that's already reserved
 	ClientSocket(std::string IP, int port);
 	ClientSocket(int sockfd);
-	void SetCallBackRead(std::function<void(ClientSocket*, std::vector<char*>)> ptr_read);
-	void SetCallBackClose(std::function<void(ClientSocket*)> ptr_close);
-	void Connect();
-	void Read();
-	void Write();
-	void Close();
-	int GetID(){ return sockfd; }
+	virtual ~ClientSocket(){}
+	//member functions declared virtual in case of needing an override at SSLClientSocket class
+	virtual void SetCallBackRead(std::function<void(ClientSocket*, std::vector<char*>)> ptr_read);
+	virtual void SetCallBackClose(std::function<void(ClientSocket*)> ptr_close);
+	virtual void Connect();
+	virtual void Read();
+	virtual void Write();
+	virtual void Close();
+	virtual int GetID(){ return sockfd; }
 
 };
 

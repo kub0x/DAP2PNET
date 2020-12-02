@@ -47,6 +47,7 @@ void ClientSocket::SetCallBackClose(std::function<void(ClientSocket*)>ptr_close)
 }
 
 void ClientSocket::Read(){
+	std::cout << "Using ClientSocket's READ" << std::endl;
 	char buf[PACKET_LENGTH]={0};
 	std::vector<char*> recv_data;
 	std::cout << "Reading messages" << std::endl;
