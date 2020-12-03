@@ -10,23 +10,19 @@
 #include <openssl/pem.h>
 #include "../Headers/PKI.hpp"
 #include <fstream>
+#include <limits.h>
+#include <unistd.h>
 
-void PKI::SaveCert(X509* cert){
-	BIO *cert_file = BIO_new_file("CA.pem", "w+");
-	PEM_write_bio_X509(cert_file, cert);
-	BIO_free_all(cert_file);
-}
-
-void PKI::GenerateKeyPair(){
+void PKI::GenerateKeyPair(std::string file_name){
 	BIGNUM *e = BN_new();
 	BN_set_word(e, RSA_F4);
 	RSA *rsa = RSA_new();
 	RSA_generate_key_ex(rsa, 2048, e, NULL);
 	// 2. save public key
-	BIO *pem_public = BIO_new_file("public.pem", "w+");
+	BIO *pem_public = BIO_new_file((std::string("pub/")+file_name + ("_pub.pem")).c_str(), "w+");
 	PEM_write_bio_RSAPublicKey(pem_public, rsa);
 // 3. save private key
-	BIO *pem_priv = BIO_new_file("private.pem", "w+");
+	BIO *pem_priv = BIO_new_file((std::string("priv/")+ file_name + ("_priv.pem")).c_str(), "w+");
 	PEM_write_bio_RSAPrivateKey(pem_priv, rsa, NULL, NULL, 0, NULL, NULL);
 	BIO_free_all(pem_public);
 	BIO_free_all(pem_priv);
@@ -35,13 +31,55 @@ void PKI::GenerateKeyPair(){
 	return;
 }
 
-void PKI::GenSelfSigned(){ //Generate a fresh CA.pem
+void PKI::GenSSLX509(){
+	GenerateKeyPair("tls");
+	X509 *cert = X509_new();
+	BIO *pem_priv = BIO_new_file("priv/tls_priv.pem", "r+");
+	RSA *rsa=NULL;
+	PEM_read_bio_RSAPrivateKey(pem_priv, &rsa, NULL, NULL);
+	EVP_PKEY * pkey = EVP_PKEY_new();
+	EVP_PKEY_assign_RSA(pkey, rsa);
+
+	ASN1_INTEGER_set(X509_get_serialNumber(cert), 1);
+	X509_gmtime_adj(X509_get_notBefore(cert), 0);
+	X509_gmtime_adj(X509_get_notAfter(cert), 31536000L);
+	X509_set_pubkey(cert, pkey);
+	X509_NAME * name = X509_get_subject_name(cert);
+	X509_NAME_add_entry_by_txt(name, "C",  MBSTRING_ASC,
+			                           (unsigned char *)"ES", -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC,
+			                           (unsigned char *)"DAP2PNET", -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
+				                       (unsigned char *)"TLS", -1, -1, 0);
+	SignCert(cert, "tls");
+	BIO_free_all(pem_priv);
+	RSA_free(rsa);
+
+	std::ifstream if_a("certs/tls.pem", std::ios_base::binary);
+	std::ifstream if_b("certs/CA.pem", std::ios_base::binary);
+	std::ofstream of_c("certs/tls_chain.pem", std::ios_base::binary);
+
+	of_c << if_a.rdbuf() << if_b.rdbuf();
+
+	/*X509_set_issuer_name(cert, name);
+	X509_sign(cert, pkey, EVP_sha256());
+
+	BIO *cert_file = BIO_new_file("certs/tls.pem", "w+");
+	PEM_write_bio_X509(cert_file, cert);
+	BIO_free_all(cert_file);
+	BIO_free_all(pem_priv);
+	X509_free(cert);
+	RSA_free(rsa);
+	*/
+}
+
+void PKI::GenSelfSigned(){ //Generate a fresh CA.pem, tls.pem
 	std::fstream fs;
-	fs.open("CA.pem");
+	fs.open("certs/CA.pem");
 	if (fs.fail()){
-		GenerateKeyPair();
+		GenerateKeyPair("CA");
 		X509 *cert = X509_new();
-		BIO *pem_priv = BIO_new_file("private.pem", "r+");
+		BIO *pem_priv = BIO_new_file("priv/CA_priv.pem", "r+");
 		RSA *rsa=NULL;
 		PEM_read_bio_RSAPrivateKey(pem_priv, &rsa, NULL, NULL);
 		EVP_PKEY * pkey = EVP_PKEY_new();
@@ -56,10 +94,10 @@ void PKI::GenSelfSigned(){ //Generate a fresh CA.pem
 		X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC,
 		                           (unsigned char *)"DAP2PNET", -1, -1, 0);
 		X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
-			                       (unsigned char *)"ADMIN", -1, -1, 0);
+			                       (unsigned char *)"REGISTRATION", -1, -1, 0);
 		X509_set_issuer_name(cert, name);
 		X509_sign(cert, pkey, EVP_sha256());
-		BIO *cert_file = BIO_new_file("CA.pem", "w+");
+		BIO *cert_file = BIO_new_file("certs/CA.pem", "w+");
 		PEM_write_bio_X509(cert_file, cert);
 		BIO_free_all(cert_file);
 		BIO_free_all(pem_priv);
@@ -67,6 +105,7 @@ void PKI::GenSelfSigned(){ //Generate a fresh CA.pem
 		RSA_free(rsa);
 
 		std::cout << "CA GENERATED!" << std::endl;
+		GenSSLX509();
 	}
 }
 
@@ -90,9 +129,9 @@ X509* PKI::CSRtoX509(std::string strCsr){
 	return cert;
 }
 
-X509* PKI::SignCert(X509 *cert, int id){ //Issue Certificates
+X509* PKI::SignCert(X509 *cert, std::string file_name){ //Issue Certificates signed with CA's private key
 	std::cout << "Called" << std::endl;
-	BIO *pem_priv = BIO_new_file("private.pem", "r+"); std::cout << "0" << std::endl;
+	BIO *pem_priv = BIO_new_file("priv/CA_priv.pem", "r+"); std::cout << "0" << std::endl;
 	RSA *rsa=NULL;
 	PEM_read_bio_RSAPrivateKey(pem_priv, &rsa, NULL, NULL); std::cout << "1" << std::endl;
 	EVP_PKEY * pkey = EVP_PKEY_new(); std::cout << "2" << std::endl;
@@ -106,11 +145,11 @@ X509* PKI::SignCert(X509 *cert, int id){ //Issue Certificates
 	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC,
 	                           (unsigned char *)"DAP2PNET", -1, -1, 0);
 	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
-	                           (unsigned char *)"ADMIN", -1, -1, 0);
+	                           (unsigned char *)"REGISTRATION", -1, -1, 0);
 	X509_set_issuer_name(cert, name); std::cout << "8" << std::endl;
 	X509_sign(cert, pkey, EVP_sha256()); std::cout << "9" << std::endl;
 	std::cout << "SIGNED" << std::endl;
-	std::string filename = "user_signed_" + std::to_string(id) + ".pem";
+	std::string filename = "certs/" + file_name + ".pem";
 	BIO *cert_file = BIO_new_file(filename.c_str(), "w+");
 	PEM_write_bio_X509(cert_file, cert);
 	BIO_free_all(pem_priv);

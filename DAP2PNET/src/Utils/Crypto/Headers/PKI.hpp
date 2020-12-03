@@ -20,11 +20,11 @@ private:
 
 public:
 
-	void SaveCert(X509* cert);
 	void GenSelfSigned();
-	void GenerateKeyPair();
+	void GenSSLX509();
+	void GenerateKeyPair(std::string file_name);
 	X509* CSRtoX509(std::string strCsr);
-	X509* SignCert(X509 *cert, int id);
+	X509* SignCert(X509 *cert, std::string file_name);
 
 };
 

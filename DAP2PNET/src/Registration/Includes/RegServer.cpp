@@ -9,7 +9,7 @@
 #include "../../Utils/Crypto/Headers/PKI.hpp"
 #include "../Headers/RegServer.hpp"
 
-//WETHER USE SSL OR NOT!
+//WHETHER USE SSL OR NOT!
 RegServer::RegServer(int port) : ServerSocket(port,true){ }
 
 void RegServer::OnRead(ClientSocket *client, std::vector<char*> buff){
@@ -20,5 +20,5 @@ void RegServer::OnRead(ClientSocket *client, std::vector<char*> buff){
 	std::cout << strCsr << std::endl;
 	X509 *recv_csr_cert = PKI::GetInstance()->CSRtoX509(strCsr);
 	if (recv_csr_cert)
-		PKI::GetInstance()->SignCert(recv_csr_cert, client->GetID());
+		PKI::GetInstance()->SignCert(recv_csr_cert, std::to_string(client->GetID()));
 }

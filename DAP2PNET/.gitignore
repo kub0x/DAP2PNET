@@ -1,3 +1,6 @@
 /Debug/
 /private.pem
 /public.pem
+/certs/
+/priv/
+/pub/
