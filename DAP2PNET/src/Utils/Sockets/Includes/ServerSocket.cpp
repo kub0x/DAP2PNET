@@ -56,9 +56,41 @@ void ServerSocket::OnRead(ClientSocket *client, std::vector<char*> buff){
 }
 
 void ServerSocket::OnClose(ClientSocket *client){
-	std::cout << "Server Handled Disconnection of user: " << client->GetID() << std::endl;
+	std::cout << "Server Handled Disconnection of user: " << client->GetSourceIP() << "," << client->GetID() << std::endl;
 	number_conn--;
 	std::cout << "Active Clients: " << number_conn << std::endl;
+	if (!client->GetRepeatedConnection()){ //A non-repeated client is disconnecting
+		//take it away from the connection table
+		std::cout << client->GetSourceIP() << " removed from connection table!" << std::endl;
+		conn_table.erase(conn_table.find(client->GetSourceIP()));
+	}
+}
+
+ClientSocket* ServerSocket::OnAccept(int clientfd, struct sockaddr_in *client_addr){
+	number_conn++;
+	char str_ip[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &(client_addr->sin_addr), str_ip, INET_ADDRSTRLEN);
+	std::cout << "Client " << str_ip << " Connected! " << std::endl;
+	ClientSocket *client = NULL;
+	if(enabled_SSL)
+		client = new SSLClientSocket(clientfd, std::string(str_ip));
+	else
+		client = new ClientSocket(clientfd, std::string(str_ip));
+	client->SetCallBackRead(std::bind(&ServerSocket::OnRead, this, std::placeholders::_1, std::placeholders::_2));
+	client->SetCallBackClose(std::bind(&ServerSocket::OnClose, this, std::placeholders::_1));
+	if (conn_table.find(client->GetSourceIP()) == conn_table.end()){
+		//Not in table
+		conn_table.insert(std::make_pair(client->GetSourceIP(), client));
+		std::thread t(&ClientSocket::Read, client);
+		t.detach();
+	}else{
+		client->SetRepeatedConnection(true);//for handling OnClose
+		std::cout << client->GetSourceIP() << " already connected!" << std::endl;
+		//Force Shutdown as it's in table
+		client->Close();
+		client=0;//to handle in overridden methods
+	}
+	return client;
 }
 
 void ServerSocket::Listen(){
@@ -76,20 +108,12 @@ void ServerSocket::Listen(){
 			 std::cout << "MAX_CONNECTIONS REACHED!";
 			 continue;
 		 }
+		 struct sockaddr_in client_addr={0};
+		 socklen_t addr = sizeof(client_addr);
 		 //non blocking socks, returns -1 when no client is waiting to be accepted
-		 clientfd = accept4(serverfd, (struct sockaddr*)NULL, NULL, SOCK_NONBLOCK);
+		 clientfd = accept4(serverfd, (struct sockaddr*)&client_addr, &addr, SOCK_NONBLOCK);
 		 if (clientfd > 0){
-			 number_conn++;
-		 	std::cout << "Client Connected! " << std::endl;
-		 	ClientSocket *client = NULL;
-		 	if(enabled_SSL)
-		 		client = new SSLClientSocket(clientfd);
-		 	else
-		 		client = new ClientSocket(clientfd);
-		 	client->SetCallBackRead(std::bind(&ServerSocket::OnRead, this, std::placeholders::_1, std::placeholders::_2));
-		 	client->SetCallBackClose(std::bind(&ServerSocket::OnClose, this, std::placeholders::_1));
-		 	std::thread t(&ClientSocket::Read, client);
-		 	t.detach();
+			 OnAccept(clientfd, &client_addr);
 		 	//client->Read();
 		 }else{ //negative, try to compare with non-blocking flags
 			 if (errno == EWOULDBLOCK || errno == EAGAIN){

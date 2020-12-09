@@ -10,13 +10,17 @@
 
 #include "../Headers/ClientSocket.hpp"
 #include <vector>
+#include <unordered_map>
 
 class ServerSocket {
+
+
 
 protected:
 	const int MAX_CONNECTIONS=5;
 	int serverfd, port, number_conn=0;
 	int enabled_SSL = false;
+	std::unordered_map<std::string, ClientSocket*> conn_table;
 	void InitSocket();
 
 public:
@@ -26,6 +30,7 @@ public:
 	virtual ~ServerSocket(){}
 	virtual void OnRead(ClientSocket *client, std::vector<char*> buff);
 	virtual void OnClose(ClientSocket *client );
+	virtual ClientSocket* OnAccept(int clientfd, struct sockaddr_in *client_addr);
 	void Listen();
 	void Write(int sockfd);
 	void Close();

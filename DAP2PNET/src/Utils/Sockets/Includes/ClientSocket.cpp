@@ -16,19 +16,20 @@
 #include <vector>
 #include <functional>
 
-ClientSocket::ClientSocket(std::string IP, int port){
-	this->IP=IP;
+ClientSocket::ClientSocket(std::string remote_IP, int port){
+	this->remote_IP=remote_IP;
 	this->port=port;
 }
 
-ClientSocket::ClientSocket(int sockfd){
+ClientSocket::ClientSocket(int sockfd, std::string source_IP){
 	this->sockfd = sockfd;
+	this->source_IP = source_IP;
 }
 
 void ClientSocket::Connect(){
 	sockfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	struct sockaddr_in server;
-	server.sin_addr.s_addr = inet_addr(IP.c_str());
+	server.sin_addr.s_addr = inet_addr(remote_IP.c_str());
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 	if (connect(sockfd , (struct sockaddr *)&server , sizeof(server)) < 0){
@@ -38,11 +39,11 @@ void ClientSocket::Connect(){
 	}
 }
 
-void ClientSocket::SetCallBackRead(std::function<void(ClientSocket*, std::vector<char*>)> ptr_read){
+void ClientSocket::SetCallBackRead(fnOnRead ptr_read){
 	this->ptr_read = ptr_read;
 }
 
-void ClientSocket::SetCallBackClose(std::function<void(ClientSocket*)>ptr_close){
+void ClientSocket::SetCallBackClose(fnOnClose ptr_close){
 	this->ptr_close = ptr_close;
 }
 
@@ -83,8 +84,9 @@ void ClientSocket::Write(){
 
 void ClientSocket::Close(){
 	std::cout << "Client " << sockfd << " Disconnected!" << std::endl;
+	ptr_close(this);
 	if (shutdown(sockfd, 2) < 0)
 		perror("shutdown");
-	ptr_close(this);
 	close(sockfd);
+	delete this; //suicidal object
 }

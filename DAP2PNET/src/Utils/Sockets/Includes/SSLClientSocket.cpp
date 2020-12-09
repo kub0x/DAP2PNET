@@ -90,7 +90,7 @@ void SSLClientSocket::Read(){
 				recv_data.clear();
 			}
 			//sleep here
-			usleep(10000000);
+			usleep(1000000);
 		}
 	}
 }

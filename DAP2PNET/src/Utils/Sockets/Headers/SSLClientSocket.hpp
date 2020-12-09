@@ -20,12 +20,12 @@ class SSLClientSocket : public ClientSocket {
 
 private:
 
-SSL_CTX* ctx;
-SSL*     ssl;
-X509*    client_cert;
-char*    str;
-char     buf [4096];
-SSL_METHOD *meth;
+SSL_CTX* ctx=0;
+SSL*     ssl=0;
+X509*    client_cert=0;
+char*    str=0;
+char     buf [4096]={0};
+SSL_METHOD *meth=0;
 
 private:
 
@@ -33,8 +33,8 @@ private:
 
 public:
 
-	SSLClientSocket(std::string IP, int port) : ClientSocket(IP,port){;}
-	SSLClientSocket(int sockfd) : ClientSocket(sockfd){ InitSSL(); }
+	SSLClientSocket(std::string remote_IP, int port) : ClientSocket(remote_IP,port){;}
+	SSLClientSocket(int sockfd, std::string source_IP) : ClientSocket(sockfd, source_IP){ InitSSL(); }
 	void Connect();
 	void Read();
 	void Write();
