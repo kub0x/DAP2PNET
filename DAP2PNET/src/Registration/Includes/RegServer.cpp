@@ -19,6 +19,11 @@ void RegServer::OnRead(ClientSocket *client, std::vector<char*> buff){
 		strCsr+=*it;
 	std::cout << strCsr << std::endl;
 	X509 *recv_csr_cert = PKI::GetInstance()->CSRtoX509(strCsr);
-	if (recv_csr_cert)
-		PKI::GetInstance()->SignCert(recv_csr_cert, std::to_string(client->GetID()));
+	if (recv_csr_cert){
+		X509 *newCert = 0;
+		newCert = PKI::GetInstance()->SignCert(recv_csr_cert, std::to_string(client->GetID()));//leaking!!
+		client->Write(PKI::GetInstance()->X509ToPEM(newCert));
+	}else{
+		client->Write("Error: The CSR provided isn't valid");
+	}
 }

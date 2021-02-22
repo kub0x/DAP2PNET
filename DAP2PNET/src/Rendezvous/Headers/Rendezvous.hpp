@@ -13,9 +13,10 @@
 class Rendezvous : public ServerSocket{
 
 private:
-
-	std::vector<std::string> unconn_peers;
-	std::vector<std::string> conn_peers;
+	const int MAX_PEERS = 5, MAX_TIMEOUT = 30000;
+	std::vector<std::string> peers;
+	void UpdatePeerList();
+	bool OnUpdatePeerList();
 
 public:
 

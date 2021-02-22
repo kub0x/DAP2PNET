@@ -11,6 +11,7 @@
 #include <string>
 #include <functional>
 #include <vector>
+#include <mutex>
 
 class ClientSocket{
 
@@ -18,6 +19,7 @@ class ClientSocket{
 	typedef std::function<void(ClientSocket*)> fnOnClose;
 
 protected:
+
 	const int PACKET_LENGTH=1024;
 	int sockfd=0, port=0;
 	std::string remote_IP, source_IP;
@@ -25,6 +27,7 @@ protected:
 	fnOnClose ptr_close=0;
 	bool repeated_conn=false;
 public:
+	std::string nodeID = "";
 	//Two constructors, one for instantiating the socket with IP:Port.
 	//The other having a valid socket descriptor that's already reserved
 	ClientSocket(std::string remote_IP, int port);
@@ -35,7 +38,7 @@ public:
 	virtual void SetCallBackClose(fnOnClose ptr_close);
 	virtual void Connect();
 	virtual void Read();
-	virtual void Write();
+	virtual void Write(const std::string& message);
 	virtual void Close();
 	virtual int GetID(){ return sockfd; }
 	std::string GetSourceIP() { return source_IP; }

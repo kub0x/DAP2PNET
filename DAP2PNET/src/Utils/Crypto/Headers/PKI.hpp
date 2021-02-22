@@ -18,8 +18,11 @@ private:
 	friend class Singleton<PKI>;
 	PKI() : Singleton<PKI>(){}
 
+	void ComputeIDFromCSR(std::string& id, X509_REQ *cert);
+
 public:
 
+	std::string X509ToPEM(X509 *cert);
 	void GenSelfSigned();
 	void GenSSLX509();
 	void GenerateKeyPair(std::string file_name);

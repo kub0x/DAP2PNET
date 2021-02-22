@@ -67,7 +67,7 @@ void ClientSocket::Read(){
 			recv_data.push_back(buf);
 		}else{
 			if (errno == EWOULDBLOCK || errno == EAGAIN){
-				if (!recv_data.empty()){
+				if (!recv_data.empty()){ //client finished sending data!
 					ptr_read(this, recv_data);
 					recv_data.clear();
 				}
@@ -78,8 +78,8 @@ void ClientSocket::Read(){
 	}
 }
 
-void ClientSocket::Write(){
-
+void ClientSocket::Write(const std::string& message){
+	std::cout << "DEFAULT WRITE" << std::endl;
 }
 
 void ClientSocket::Close(){
